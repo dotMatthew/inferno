@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @NoArgsConstructor
 public class CommandHandler {
 
-    private final HashMap<String, ClassHolder> commandMethods = new HashMap<>();
     private final List<ClassHolder> parentCommandMethods = new ArrayList<>();
 
     /**
@@ -29,20 +28,10 @@ public class CommandHandler {
      */
     public void registerCommand(final @NotNull Class<?> clazz) {
 
-        final Method[] methods = clazz.getMethods();
-
         // iterates over all methods of this class
-        Arrays.stream(methods).forEach(method -> {
+        Arrays.stream(clazz.getMethods()).forEach(method -> {
             // check if one of this methods has the @Command annotation
-            final AtomicInteger annotationCounter = new AtomicInteger();
-            Arrays.stream(clazz.getMethods()).forEach(m -> {
-                if(m.isAnnotationPresent(Command.class)) {
-                    annotationCounter.getAndIncrement();
-                }
-            });
-
-            // if there is no annotation it will throw an error
-            if(annotationCounter.get() == 0) {
+            if(!clazzContainsCommandAnnotation(clazz)) {
                 throw new NoCommandMethodsException(
                         "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
             }
@@ -53,15 +42,42 @@ public class CommandHandler {
             /* check if one of this methods with the @Command Annotation has a Parent Segment or not
              if it has one its a subcommand if not its the parent command */
             if(method.getAnnotation(Command.class).parent().isBlank()) {
-                registerParentCommand(method, clazz);
+                registerParentCommand(clazz, method);
             } else {
-                registerSubCommand(method, clazz);
+                registerSubCommand(clazz, method);
             }
         });
 
     }
 
-    private void registerParentCommand(final @NotNull Method method, final Class<?> clazz) {
+    public void unregisterCommand(final @NotNull Class<?> clazz) {
+
+        // iterates over all methods of this class
+        Arrays.stream(clazz.getMethods()).forEach(method -> {
+
+            // check if one of this methods has the @Command annotation
+            if(!clazzContainsCommandAnnotation(clazz)) {
+                throw new NoCommandMethodsException(
+                        "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
+            }
+
+            if(!method.isAnnotationPresent(Command.class)) return;
+
+            final Command command = method.getAnnotation(Command.class);
+
+            if(command.parent().isBlank()) {
+                unregisterParentCommand(clazz, method);
+            } else {
+                final String parentLabel = command.parent();
+                unregisterSubCommand(parentLabel, command);
+            }
+
+        });
+
+    }
+
+    private void registerParentCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
+
         final Command command = method.getAnnotation(Command.class);
 
         // check if there is another parent command in the same class
@@ -84,6 +100,7 @@ public class CommandHandler {
                     .clazz(clazz)
                     .label(command.label())
                     .method(method)
+                    .command(command)
                     .build();
 
             this.parentCommandMethods.add(holder);
@@ -91,7 +108,7 @@ public class CommandHandler {
         });
     }
 
-    private void registerSubCommand(final @NotNull Method method, final @NotNull Class<?> clazz) {
+    private void registerSubCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
 
         final Command command = method.getAnnotation(Command.class);
         final String parentCommandLabel = command.parent();
@@ -101,10 +118,52 @@ public class CommandHandler {
                 .label(command.label())
                 .clazz(clazz)
                 .method(method)
+                .command(command)
                 .build();
 
-        this.commandMethods.put(parentCommandLabel, holder);
+        Optional<ClassHolder> classHolderOptional = parentCommandMethods
+                .stream()
+                .findFirst()
+                .filter(classHolder -> classHolder.getLabel().equalsIgnoreCase(parentCommandLabel));
 
+        classHolderOptional.ifPresent(classHolder -> classHolder.getCommandList().add(holder));
+
+    }
+
+    private void unregisterParentCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
+        parentCommandMethods.forEach(classHolder -> {
+            if(classHolder.getClazz() != clazz) return;
+            if(classHolder.getMethod() != method) return;
+            parentCommandMethods.remove(classHolder);
+        });
+    }
+
+    private void unregisterSubCommand(final @NotNull String parentLabel, final @NotNull Command command) {
+        parentCommandMethods.forEach(parentClassHolder -> {
+            if(!parentClassHolder.getLabel().equalsIgnoreCase(parentLabel)) return;
+
+            parentClassHolder.getCommandList().forEach(subCommandClassHolder -> {
+                if(subCommandClassHolder.getCommand() != command) return;
+                removeCommand(parentClassHolder, subCommandClassHolder);
+            });
+
+        });
+    }
+
+    private boolean clazzContainsCommandAnnotation(final @NotNull Class<?> clazz) {
+        final AtomicInteger annotationCounter = new AtomicInteger();
+        Arrays.stream(clazz.getMethods()).forEach(m -> {
+            if(m.isAnnotationPresent(Command.class)) {
+                annotationCounter.getAndIncrement();
+            }
+        });
+
+        // if there is no annotation we will return false
+        return annotationCounter.get() != 0;
+    }
+
+    private void removeCommand(final @NotNull ClassHolder holder, final @NotNull ClassHolder classHolder) {
+        holder.getCommandList().remove(classHolder);
     }
 
 }
