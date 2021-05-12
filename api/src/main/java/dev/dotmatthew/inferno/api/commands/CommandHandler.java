@@ -1,15 +1,15 @@
 package dev.dotmatthew.inferno.api.commands;
 
+import com.google.common.base.Preconditions;
 import dev.dotmatthew.inferno.api.exceptions.NoCommandMethodsException;
 import dev.dotmatthew.inferno.api.exceptions.OnlyOneParentException;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+import javax.print.attribute.standard.MediaSize;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.sql.SQLOutput;
+import java.util.*;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -27,7 +27,7 @@ public class CommandHandler {
      * This methods register all commands at the start of the server
      * Only call at the beginning
      *
-     * @param clazz The clazz to check for methods
+     * @param clazz The class to check for methods
      */
     public void registerCommand(final @NotNull Class<?> clazz) {
 
@@ -36,23 +36,28 @@ public class CommandHandler {
         // iterates over all methods of this class
         Arrays.stream(methods).forEach(method -> {
             // check if one of this methods has the @Command annotation
-            if(method.isAnnotationPresent(Command.class)) {
+            if(!method.isAnnotationPresent(Command.class)) {
                 throw new NoCommandMethodsException(
                         "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
             }
 
-            // check if one of this methods with the @Command Annotation has a Parent Segment or not
-            // if it has one its a subcommand if not its the parent command
+            /* check if one of this methods with the @Command Annotation has a Parent Segment or not
+             if it has one its a subcommand if not its the parent command */
             if(method.getAnnotation(Command.class).parent().isBlank()) {
+
+                final Command command = method.getAnnotation(Command.class);
+
                 // check if there is another parent command in the same class
                 parentCommandMethods.forEach((ch) -> {
                     // check if there is already another parent method for this command in the same class
                     if(ch.getClazz() == clazz) {
-                        throw new OnlyOneParentException("Its not allowed that a class holdes 2 parent commands! (Class where the error is " + clazz.getName()+")");
+                        throw new OnlyOneParentException(
+                                "Its not allowed that a class holdes 2 parent commands! (Class where the error is "
+                                + clazz.getName()+")");
                     }
 
                     // check if there is already another parent method for this command in another class
-                    if(ch.getLabel().equalsIgnoreCase(method.getAnnotation(Command.class).label())) {
+                    if(ch.getLabel().equalsIgnoreCase(command.label())) {
                         throw new OnlyOneParentException(
                         "Its not allowed to register 2 methods as a parent for the same command (Classes: " +
                          clazz.getName() + " and " + ch.getClazz().getName()+")");
@@ -60,13 +65,27 @@ public class CommandHandler {
 
                     final ClassHolder holder = ClassHolder.builder()
                             .clazz(clazz)
-                            .label(method.getAnnotation(Command.class).label())
+                            .label(command.label())
                             .method(method)
                             .build();
 
                     this.parentCommandMethods.add(holder);
 
                 });
+            } else {
+
+                final Command command = method.getAnnotation(Command.class);
+                final String parentCommandLabel = command.parent();
+
+                final ClassHolder holder = ClassHolder
+                        .builder()
+                        .label(command.label())
+                        .clazz(clazz)
+                        .method(method)
+                        .build();
+
+                this.commandMethods.put(parentCommandLabel, holder);
+
             }
         });
 
