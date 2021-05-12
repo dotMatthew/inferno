@@ -29,7 +29,7 @@ public class CommandHandler {
     public void registerCommand(final @NotNull Class<?> clazz) {
 
         // iterates over all methods of this class
-        Arrays.stream(clazz.getMethods()).forEach(method -> {
+        Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
             // check if one of this methods has the @Command annotation
             if(!clazzContainsCommandAnnotation(clazz)) {
                 throw new NoCommandMethodsException(
@@ -53,7 +53,7 @@ public class CommandHandler {
     public void unregisterCommand(final @NotNull Class<?> clazz) {
 
         // iterates over all methods of this class
-        Arrays.stream(clazz.getMethods()).forEach(method -> {
+        Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
 
             // check if one of this methods has the @Command annotation
             if(!clazzContainsCommandAnnotation(clazz)) {
@@ -152,7 +152,7 @@ public class CommandHandler {
 
     private boolean clazzContainsCommandAnnotation(final @NotNull Class<?> clazz) {
         final AtomicInteger annotationCounter = new AtomicInteger();
-        Arrays.stream(clazz.getMethods()).forEach(m -> {
+        Arrays.stream(clazz.getDeclaredMethods()).forEach(m -> {
             if(m.isAnnotationPresent(Command.class)) {
                 annotationCounter.getAndIncrement();
             }
