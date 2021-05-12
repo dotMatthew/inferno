@@ -53,50 +53,57 @@ public class CommandHandler {
             /* check if one of this methods with the @Command Annotation has a Parent Segment or not
              if it has one its a subcommand if not its the parent command */
             if(method.getAnnotation(Command.class).parent().isBlank()) {
-
-                final Command command = method.getAnnotation(Command.class);
-
-                // check if there is another parent command in the same class
-                parentCommandMethods.forEach((ch) -> {
-                    // check if there is already another parent method for this command in the same class
-                    if(ch.getClazz() == clazz) {
-                        throw new OnlyOneParentException(
-                                "Its not allowed that a class holdes 2 parent commands! (Class where the error is "
-                                + clazz.getName()+")");
-                    }
-
-                    // check if there is already another parent method for this command in another class
-                    if(ch.getLabel().equalsIgnoreCase(command.label())) {
-                        throw new OnlyOneParentException(
-                        "Its not allowed to register 2 methods as a parent for the same command (Classes: " +
-                         clazz.getName() + " and " + ch.getClazz().getName()+")");
-                    }
-
-                    final ClassHolder holder = ClassHolder.builder()
-                            .clazz(clazz)
-                            .label(command.label())
-                            .method(method)
-                            .build();
-
-                    this.parentCommandMethods.add(holder);
-
-                });
+                registerParentCommand(method, clazz);
             } else {
-
-                final Command command = method.getAnnotation(Command.class);
-                final String parentCommandLabel = command.parent();
-
-                final ClassHolder holder = ClassHolder
-                        .builder()
-                        .label(command.label())
-                        .clazz(clazz)
-                        .method(method)
-                        .build();
-
-                this.commandMethods.put(parentCommandLabel, holder);
-
+                registerSubCommand(method, clazz);
             }
         });
+
+    }
+
+    private void registerParentCommand(final @NotNull Method method, final Class<?> clazz) {
+        final Command command = method.getAnnotation(Command.class);
+
+        // check if there is another parent command in the same class
+        parentCommandMethods.forEach((ch) -> {
+            // check if there is already another parent method for this command in the same class
+            if(ch.getClazz() == clazz) {
+                throw new OnlyOneParentException(
+                        "Its not allowed that a class holdes 2 parent commands! (Class where the error is "
+                                + clazz.getName()+")");
+            }
+
+            // check if there is already another parent method for this command in another class
+            if(ch.getLabel().equalsIgnoreCase(command.label())) {
+                throw new OnlyOneParentException(
+                        "Its not allowed to register 2 methods as a parent for the same command (Classes: " +
+                                clazz.getName() + " and " + ch.getClazz().getName()+")");
+            }
+
+            final ClassHolder holder = ClassHolder.builder()
+                    .clazz(clazz)
+                    .label(command.label())
+                    .method(method)
+                    .build();
+
+            this.parentCommandMethods.add(holder);
+
+        });
+    }
+
+    private void registerSubCommand(final @NotNull Method method, final @NotNull Class<?> clazz) {
+
+        final Command command = method.getAnnotation(Command.class);
+        final String parentCommandLabel = command.parent();
+
+        final ClassHolder holder = ClassHolder
+                .builder()
+                .label(command.label())
+                .clazz(clazz)
+                .method(method)
+                .build();
+
+        this.commandMethods.put(parentCommandLabel, holder);
 
     }
 
