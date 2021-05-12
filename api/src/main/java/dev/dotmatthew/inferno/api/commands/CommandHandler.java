@@ -2,12 +2,17 @@ package dev.dotmatthew.inferno.api.commands;
 
 import dev.dotmatthew.inferno.api.exceptions.NoCommandMethodsException;
 import dev.dotmatthew.inferno.api.exceptions.OnlyOneParentException;
+import dev.dotmatthew.inferno.api.exceptions.WrongParameterException;
+import dev.dotmatthew.inferno.api.parameters.ParameterSet;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -31,13 +36,18 @@ public class CommandHandler {
         // iterates over all methods of this class
         Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
             // check if one of this methods has the @Command annotation
-            if(!clazzContainsCommandAnnotation(clazz)) {
+            if(clazzContainsCommandAnnotationInverted(clazz)) {
                 throw new NoCommandMethodsException(
                         "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
             }
 
             // check if this specific method in the stream has the annotation @Command
             if(!method.isAnnotationPresent(Command.class)) return;
+
+            // checks if the given method has an ParameterSet as argument or something else
+            if(hasMethodCorrectParameters(method)) {
+                throw new WrongParameterException("The method has wrong argument(s). The only allowed argument is an ParameterSet (" + method.getName() + ")");
+            }
 
             /* check if one of this methods with the @Command Annotation has a Parent Segment or not
              if it has one its a subcommand if not its the parent command */
@@ -56,12 +66,17 @@ public class CommandHandler {
         Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
 
             // check if one of this methods has the @Command annotation
-            if(!clazzContainsCommandAnnotation(clazz)) {
+            if(clazzContainsCommandAnnotationInverted(clazz)) {
                 throw new NoCommandMethodsException(
                         "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
             }
 
             if(!method.isAnnotationPresent(Command.class)) return;
+
+            // checks if the given method has an ParameterSet as argument or something else
+            if(hasMethodCorrectParameters(method)) {
+                throw new WrongParameterException("The method has wrong argument(s). The only allowed argument is an ParameterSet (" + method.getName() + ")");
+            }
 
             final Command command = method.getAnnotation(Command.class);
 
@@ -75,6 +90,39 @@ public class CommandHandler {
         });
 
     }
+
+    /**
+     *
+     * Executes a command from the cli
+     *
+     * @param command the whole line which was written to the cli
+     */
+    public void executeCommand(final @NotNull String command) {
+
+        final String[] commandArray = command.split(" ");
+        final String parentCommand = commandArray[0];
+
+        AtomicReference<ClassHolder> parentCommandHolder = new AtomicReference<>(new ClassHolder());
+        AtomicReference<ClassHolder> subCommandHolder = new AtomicReference<>(new ClassHolder());
+        AtomicBoolean hasSubCommands = new AtomicBoolean(false);
+
+        parentCommandMethods.forEach(classHolder -> {
+            if(!classHolder.getLabel().equalsIgnoreCase(parentCommand)) return;
+            hasSubCommands.set(!classHolder.getCommandList().isEmpty());
+            parentCommandHolder.set(classHolder);
+        });
+
+        if(hasSubCommands.get()) {
+            final String subCommand = commandArray[1];
+
+        } else {
+            // todo work with the arguments
+            return;
+        }
+
+    }
+
+    /* --- internal methods --- */
 
     private void registerParentCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
 
@@ -150,7 +198,7 @@ public class CommandHandler {
         });
     }
 
-    private boolean clazzContainsCommandAnnotation(final @NotNull Class<?> clazz) {
+    private boolean clazzContainsCommandAnnotationInverted(final @NotNull Class<?> clazz) {
         final AtomicInteger annotationCounter = new AtomicInteger();
         Arrays.stream(clazz.getDeclaredMethods()).forEach(m -> {
             if(m.isAnnotationPresent(Command.class)) {
@@ -159,12 +207,18 @@ public class CommandHandler {
         });
 
         // if there is no annotation we will return false
-        return annotationCounter.get() != 0;
+        return annotationCounter.get() == 0;
     }
 
     private void removeCommand(final @NotNull ClassHolder holder, final @NotNull ClassHolder classHolder) {
         if(holder.getCommandList().isEmpty()) return;
         holder.getCommandList().remove(classHolder);
+    }
+
+    private boolean hasMethodCorrectParameters(final @NotNull Method method) {
+        if(method.getParameterCount() != 1) return true;
+        final Parameter[] parameters = method.getParameters();
+        return !parameters[0].getType().equals(ParameterSet.class);
     }
 
 }

@@ -2,6 +2,7 @@ package dev.dotmatthew.inferno.api.commands;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
 public class ClassHolder {
 
     private Class<?> clazz;

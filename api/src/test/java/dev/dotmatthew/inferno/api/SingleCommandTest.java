@@ -1,6 +1,8 @@
 package dev.dotmatthew.inferno.api;
 
 import dev.dotmatthew.inferno.api.commands.Command;
+import dev.dotmatthew.inferno.api.parameters.ParameterSet;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -10,12 +12,12 @@ import dev.dotmatthew.inferno.api.commands.Command;
 public class SingleCommandTest {
 
     @Command(label = "dosomething")
-    private void doSomething() {
+    public void doSomething(final @NotNull ParameterSet set) {
         System.out.println("This is a parent command");
     }
 
     @Command(label = "subcommand", parent = "dosomething")
-    private void doSomethingSubCommand() {
+    public void doSomethingSubCommand(final @NotNull ParameterSet set) {
         System.out.println("This is a subcommand");
     }
 
