@@ -163,6 +163,7 @@ public class CommandHandler {
     }
 
     private void removeCommand(final @NotNull ClassHolder holder, final @NotNull ClassHolder classHolder) {
+        if(holder.getCommandList().isEmpty()) return;
         holder.getCommandList().remove(classHolder);
     }
 
