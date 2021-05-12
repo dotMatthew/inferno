@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -19,5 +20,9 @@ public class ClassHolder {
     private String label;
 
     private Method method;
+
+    private List<ClassHolder> commandList;
+
+    private Command command;
 
 }
