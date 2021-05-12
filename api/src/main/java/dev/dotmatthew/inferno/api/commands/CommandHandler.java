@@ -1,15 +1,13 @@
 package dev.dotmatthew.inferno.api.commands;
 
-import com.google.common.base.Preconditions;
 import dev.dotmatthew.inferno.api.exceptions.NoCommandMethodsException;
 import dev.dotmatthew.inferno.api.exceptions.OnlyOneParentException;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
-import javax.print.attribute.standard.MediaSize;
 import java.lang.reflect.Method;
-import java.sql.SQLOutput;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -36,10 +34,21 @@ public class CommandHandler {
         // iterates over all methods of this class
         Arrays.stream(methods).forEach(method -> {
             // check if one of this methods has the @Command annotation
-            if(!method.isAnnotationPresent(Command.class)) {
+            final AtomicInteger annotationCounter = new AtomicInteger();
+            Arrays.stream(clazz.getMethods()).forEach(m -> {
+                if(m.isAnnotationPresent(Command.class)) {
+                    annotationCounter.getAndIncrement();
+                }
+            });
+
+            // if there is no annotation it will throw an error
+            if(annotationCounter.get() == 0) {
                 throw new NoCommandMethodsException(
                         "There are no command methods registered in this clazz (" +  clazz.getName() + ")");
             }
+
+            // check if this specific method in the stream has the annotation @Command
+            if(!method.isAnnotationPresent(Command.class)) return;
 
             /* check if one of this methods with the @Command Annotation has a Parent Segment or not
              if it has one its a subcommand if not its the parent command */
