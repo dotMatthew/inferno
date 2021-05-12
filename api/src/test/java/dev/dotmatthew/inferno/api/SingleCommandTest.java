@@ -10,12 +10,12 @@ import dev.dotmatthew.inferno.api.commands.Command;
 public class SingleCommandTest {
 
     @Command(label = "dosomething")
-    private void doSomething() {
+    public void doSomething() {
         System.out.println("This is a parent command");
     }
 
     @Command(label = "subcommand", parent = "dosomething")
-    private void doSomethingSubCommand() {
+    public void doSomethingSubCommand() {
         System.out.println("This is a subcommand");
     }
 

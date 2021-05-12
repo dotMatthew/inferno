@@ -1,6 +1,5 @@
 package dev.dotmatthew.inferno.api;
 
-import dev.dotmatthew.inferno.api.commands.Command;
 import dev.dotmatthew.inferno.api.commands.CommandHandler;
 
 /**
