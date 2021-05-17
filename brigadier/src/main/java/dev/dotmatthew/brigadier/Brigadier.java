@@ -32,7 +32,7 @@ public class Brigadier {
     }
 
     public void registerCommand(final @NotNull Class<?> clazz, final @NotNull Object instance) {
-        if(clazz.getName() != instance.getClass().getName()) {
+        if(clazz.getName().equals(instance.getClass().getName())) {
             throw new RegisterCommandException("The Class is not the same as the object instance!");
         }
 
