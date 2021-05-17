@@ -16,9 +16,9 @@ public class SingleCommandTest {
         System.out.println("This is a parent command");
     }
 
-    @Command(label = "subcommand", parent = "dosomething")
+    @Command(label = "test", parent = "dosomething")
     public void doSomethingSubCommand(final @NotNull ParameterSet set) {
-        System.out.println("This is a subcommand");
+        System.out.println("This is a subcommand and i got executed!");
     }
 
 }
