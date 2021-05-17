@@ -4,16 +4,14 @@ import dev.dotmatthew.brigadier.command.Command;
 import dev.dotmatthew.brigadier.command.CommandHolder;
 import dev.dotmatthew.brigadier.command.Parent;
 import dev.dotmatthew.brigadier.command.SubCommandHolder;
-import dev.dotmatthew.brigadier.exceptions.MethodIsNoCommandException;
-import dev.dotmatthew.brigadier.exceptions.NoParentCommandException;
-import dev.dotmatthew.brigadier.exceptions.RegisterCommandException;
-import dev.dotmatthew.brigadier.exceptions.TooManyParentCommandsException;
+import dev.dotmatthew.brigadier.exceptions.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Mathias Dollenbacher <hello@mdollenbacher.net>
@@ -92,12 +90,16 @@ public class Brigadier {
 
     }
 
-    private void unregisterCommand() {
-
+    private boolean unregisterCommand(final @NotNull String label) {
+        final Optional<CommandHolder> holder = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(label));
+        if(holder.isEmpty()) {
+            throw new CommandNotFoundException("There was no command found with this name");
+        }
+        return commands.remove(holder.get());
     }
 
     private void unregisterCommands() {
-
+        commands.clear();
     }
 
     private void executeCommand() {
