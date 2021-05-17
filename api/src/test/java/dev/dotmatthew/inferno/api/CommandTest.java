@@ -15,6 +15,8 @@ public class CommandTest {
 
         handler.registerCommand(SingleCommandTest.class);
 
+        handler.executeCommand("dosomething test");
+
         handler.unregisterCommand(SingleCommandTest.class);
 
     }

@@ -7,6 +7,7 @@ import dev.dotmatthew.inferno.api.parameters.ParameterSet;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @NoArgsConstructor
 public class CommandHandler {
 
-    private final List<ClassHolder> parentCommandMethods = new ArrayList<>();
+    private final HashMap<String, ClassHolder> parentCommandMethods = new HashMap<>();
 
     /**
      *
@@ -59,6 +60,10 @@ public class CommandHandler {
         });
 
     }
+
+
+
+
 
     public void unregisterCommand(final @NotNull Class<?> clazz) {
 
@@ -102,11 +107,11 @@ public class CommandHandler {
         final String[] commandArray = command.split(" ");
         final String parentCommand = commandArray[0];
 
-        AtomicReference<ClassHolder> parentCommandHolder = new AtomicReference<>(new ClassHolder());
-        AtomicReference<ClassHolder> subCommandHolder = new AtomicReference<>(new ClassHolder());
+        AtomicReference<ClassHolder> parentCommandHolder = new AtomicReference<>();
+        AtomicReference<ClassHolder> subCommandHolder = new AtomicReference<>();
         AtomicBoolean hasSubCommands = new AtomicBoolean(false);
 
-        parentCommandMethods.forEach(classHolder -> {
+        parentCommandMethods.forEach((parenLabel, classHolder) -> {
             if(!classHolder.getLabel().equalsIgnoreCase(parentCommand)) return;
             hasSubCommands.set(!classHolder.getCommandList().isEmpty());
             parentCommandHolder.set(classHolder);
@@ -114,6 +119,20 @@ public class CommandHandler {
 
         if(hasSubCommands.get()) {
             final String subCommand = commandArray[1];
+
+            parentCommandHolder.get().getCommandList().forEach(classHolder -> {
+                if(!classHolder.getLabel().equalsIgnoreCase(subCommand)) return;
+                subCommandHolder.set(classHolder);
+            });
+
+            final Method method = subCommandHolder.get().getMethod();
+
+            try {
+                Method m = Class.forName(method.getDeclaringClass().getName()).getDeclaredMethod(method.getName());
+                m.invoke(null, new ParameterSet());
+            } catch (final @NotNull Exception exception) {
+                exception.printStackTrace();
+            }
 
         } else {
             // todo work with the arguments
@@ -129,7 +148,7 @@ public class CommandHandler {
         final Command command = method.getAnnotation(Command.class);
 
         // check if there is another parent command in the same class
-        parentCommandMethods.forEach((ch) -> {
+        parentCommandMethods.forEach((parentLabel, ch) -> {
             // check if there is already another parent method for this command in the same class
             if(ch.getClazz() == clazz) {
                 throw new OnlyOneParentException(
@@ -144,16 +163,17 @@ public class CommandHandler {
                                 clazz.getName() + " and " + ch.getClazz().getName()+")");
             }
 
-            final ClassHolder holder = ClassHolder.builder()
-                    .clazz(clazz)
-                    .label(command.label())
-                    .method(method)
-                    .command(command)
-                    .build();
-
-            this.parentCommandMethods.add(holder);
-
         });
+        final ClassHolder holder = ClassHolder.builder()
+                .clazz(clazz)
+                .label(command.label())
+                .method(method)
+                .commandList(new ArrayList<>())
+                .command(command)
+                .build();
+
+        this.parentCommandMethods.put(command.label(),holder);
+
     }
 
     private void registerSubCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
@@ -169,31 +189,30 @@ public class CommandHandler {
                 .command(command)
                 .build();
 
-        Optional<ClassHolder> classHolderOptional = parentCommandMethods
-                .stream()
-                .findFirst()
-                .filter(classHolder -> classHolder.getLabel().equalsIgnoreCase(parentCommandLabel));
-
-        classHolderOptional.ifPresent(classHolder -> classHolder.getCommandList().add(holder));
+        final ClassHolder parentClassHolder = parentCommandMethods.get(parentCommandLabel);
+        parentClassHolder.getCommandList().add(holder);
+        this.parentCommandMethods.put(parentCommandLabel, parentClassHolder);
 
     }
 
     private void unregisterParentCommand(final @NotNull Class<?> clazz, final @NotNull Method method) {
-        parentCommandMethods.forEach(classHolder -> {
+        parentCommandMethods.forEach((parentLabel, classHolder) -> {
             if(classHolder.getClazz() != clazz) return;
             if(classHolder.getMethod() != method) return;
-            parentCommandMethods.remove(classHolder);
+            parentCommandMethods.remove(parentLabel);
         });
     }
 
     private void unregisterSubCommand(final @NotNull String parentLabel, final @NotNull Command command) {
-        parentCommandMethods.forEach(parentClassHolder -> {
+        parentCommandMethods.forEach((parentLabelId, parentClassHolder) -> {
             if(!parentClassHolder.getLabel().equalsIgnoreCase(parentLabel)) return;
 
-            parentClassHolder.getCommandList().forEach(subCommandClassHolder -> {
-                if(subCommandClassHolder.getCommand() != command) return;
-                removeCommand(parentClassHolder, subCommandClassHolder);
-            });
+            final Iterator<ClassHolder> iterator = parentClassHolder.getCommandList().iterator();
+
+            while(iterator.hasNext()) {
+                if(iterator.next().getCommand() != command) continue;
+                iterator.remove();
+            }
 
         });
     }

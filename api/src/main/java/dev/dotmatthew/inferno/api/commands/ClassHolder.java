@@ -1,10 +1,9 @@
 package dev.dotmatthew.inferno.api.commands;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,9 +11,9 @@ import java.util.List;
  * @since 12.05.21
  */
 
-@Data
+@Getter
+@Setter
 @Builder
-@NoArgsConstructor
 public class ClassHolder {
 
     private Class<?> clazz;
@@ -23,7 +22,7 @@ public class ClassHolder {
 
     private Method method;
 
-    private List<ClassHolder> commandList;
+    private ArrayList<ClassHolder> commandList;
 
     private Command command;
 

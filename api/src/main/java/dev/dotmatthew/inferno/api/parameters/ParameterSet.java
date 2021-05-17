@@ -27,4 +27,8 @@ public class ParameterSet {
         return this.parameters.contains(parameter);
     }
 
+    public int getLength() {
+        return parameters.size();
+    }
+
 }
