@@ -33,7 +33,7 @@ public class Brigadier {
     }
 
     public void registerCommand(final @NotNull Class<?> clazz, final @NotNull Object instance) {
-        if(clazz.getName().equals(instance.getClass().getName())) {
+        if(!clazz.getName().equals(instance.getClass().getName())) {
             throw new RegisterCommandException("The Class is not the same as the object instance!");
         }
 
@@ -121,14 +121,15 @@ public class Brigadier {
     }
 
     public void executeCommand(final @NotNull String command) {
-        final Optional<CommandHolder> holderOptional = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(command));
+        final String[] commandArray = command.split(" ");
+
+        final Optional<CommandHolder> holderOptional = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(commandArray[0]));
 
         if(holderOptional.isEmpty()) {
             throw new CommandNotFoundException("There was no command found with that name");
         }
 
         final CommandHolder holder = holderOptional.get();
-        final String[] commandArray = command.split(" ");
 
         final Optional<SubCommandHolder> optionalSubCommandHolders =
                 holder.getSubCommands().stream().findFirst().filter(subCommandHolder -> subCommandHolder.getLabel().equalsIgnoreCase(commandArray[1]));
@@ -148,6 +149,10 @@ public class Brigadier {
             }
         }
 
+    }
+
+    public void sayCommands() {
+        System.out.println(commands);
     }
 
     private boolean hasMethodNotCorrectParameters(final @NotNull Method method) {
