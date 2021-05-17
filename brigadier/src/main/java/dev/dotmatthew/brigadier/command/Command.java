@@ -25,11 +25,6 @@ public @interface Command {
     String[] aliases() default {""};
 
     /**
-     * @return the Parent Command label
-     */
-    String parent() default "";
-
-    /**
      * @return a description for a command
      */
     String desc() default "";

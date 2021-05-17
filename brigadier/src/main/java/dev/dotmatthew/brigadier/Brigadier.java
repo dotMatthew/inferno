@@ -3,6 +3,7 @@ package dev.dotmatthew.brigadier;
 import dev.dotmatthew.brigadier.command.Command;
 import dev.dotmatthew.brigadier.command.CommandHolder;
 import dev.dotmatthew.brigadier.command.Parent;
+import dev.dotmatthew.brigadier.command.SubCommandHolder;
 import dev.dotmatthew.brigadier.exceptions.MethodIsNoCommandException;
 import dev.dotmatthew.brigadier.exceptions.NoParentCommandException;
 import dev.dotmatthew.brigadier.exceptions.RegisterCommandException;
@@ -56,7 +57,38 @@ public class Brigadier {
 
         final Command parentCommand = parentMethod.getAnnotation(Command.class);
 
+        final CommandHolder holder = CommandHolder
+                .builder()
+                .label(parentCommand.label())
+                .aliases(parentCommand.aliases())
+                .description(parentCommand.desc())
+                .usage(parentCommand.usage())
+                .clazz(clazz)
+                .instance(instance)
+                .method(parentMethod)
+                .build();
 
+        declaredMethods.forEach(method -> {
+            if(method.isAnnotationPresent(Parent.class)) return;
+            if(!method.isAnnotationPresent(Command.class)) return;
+
+            final Command subCommand = method.getAnnotation(Command.class);
+
+            final SubCommandHolder subCommandHolder = SubCommandHolder
+                    .builder()
+                    .parent(holder)
+                    .aliases(subCommand.aliases())
+                    .description(subCommand.desc())
+                    .usage(subCommand.usage())
+                    .label(subCommand.label())
+                    .method(method)
+                    .build();
+
+            holder.addSubCommand(subCommandHolder);
+
+        });
+
+        commands.add(holder);
 
     }
 

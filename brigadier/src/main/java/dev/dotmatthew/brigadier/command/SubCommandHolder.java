@@ -16,13 +16,11 @@ public class SubCommandHolder {
 
     private final String label;
     private final String[] aliases;
-    private final String parent;
+    private final CommandHolder parent;
     private final String description;
     private final String usage;
 
-    private final Class<?> clazz;
     private final Method method;
-    private final Object instance;
 
     public final Method getMethod() {
         return getMethodAccessible();

@@ -2,6 +2,7 @@ package dev.dotmatthew.brigadier.command;
 
 import lombok.Builder;
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -35,6 +36,14 @@ public class CommandHolder {
     private Method getMethodAccessible() {
         this.method.setAccessible(true);
         return this.method;
+    }
+
+    public final boolean addSubCommand(final @NotNull SubCommandHolder subCommandHolder) {
+        return subCommands.add(subCommandHolder);
+    }
+
+    public final boolean removeSubCommand(final @NotNull SubCommandHolder subCommandHolder) {
+        return subCommands.remove(subCommandHolder);
     }
 
 }
