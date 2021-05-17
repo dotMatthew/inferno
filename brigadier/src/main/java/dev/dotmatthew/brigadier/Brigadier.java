@@ -5,9 +5,11 @@ import dev.dotmatthew.brigadier.command.CommandHolder;
 import dev.dotmatthew.brigadier.command.Parent;
 import dev.dotmatthew.brigadier.command.SubCommandHolder;
 import dev.dotmatthew.brigadier.exceptions.*;
+import dev.dotmatthew.brigadier.parameter.ParameterSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,6 +55,14 @@ public class Brigadier {
             throw new MethodIsNoCommandException("The parent method has no command annotation");
         }
 
+        if(parentMethod.getParameters().length != 1) {
+            throw new ParameterException("There is only on argument allowed!");
+        }
+
+        if(hasMethodNotCorrectParameters(parentMethod)) {
+            throw new ParameterException("The given method parameter is invalid. Only allowed are ParameterSets ("+clazz.getName()+")");
+        }
+
         final Command parentCommand = parentMethod.getAnnotation(Command.class);
 
         final CommandHolder holder = CommandHolder
@@ -69,6 +79,14 @@ public class Brigadier {
         declaredMethods.forEach(method -> {
             if(method.isAnnotationPresent(Parent.class)) return;
             if(!method.isAnnotationPresent(Command.class)) return;
+
+            if(method.getParameters().length != 1) {
+                throw new ParameterException("There is only on parameter allowed!");
+            }
+
+            if(hasMethodNotCorrectParameters(method)) {
+                throw new ParameterException("The given method parameter is invalid. Only allowed are ParameterSets ("+clazz.getName()+")");
+            }
 
             final Command subCommand = method.getAnnotation(Command.class);
 
@@ -102,8 +120,40 @@ public class Brigadier {
         commands.clear();
     }
 
-    private void executeCommand() {
+    private void executeCommand(final @NotNull String command) {
+        final Optional<CommandHolder> holderOptional = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(command));
 
+        if(holderOptional.isEmpty()) {
+            throw new CommandNotFoundException("There was no command found with that name");
+        }
+
+        final CommandHolder holder = holderOptional.get();
+        final String[] commandArray = command.split(" ");
+
+        final Optional<SubCommandHolder> optionalSubCommandHolders =
+                holder.getSubCommands().stream().findFirst().filter(subCommandHolder -> subCommandHolder.getLabel().equalsIgnoreCase(commandArray[1]));
+
+        if(optionalSubCommandHolders.isEmpty()) {
+            try {
+                holder.getMethod().invoke(holder.getInstance(), new ParameterSet(Arrays.copyOfRange(commandArray, 1, commandArray.length)));
+            } catch (final @NotNull Exception exception) {
+                exception.printStackTrace();
+            }
+        } else {
+            final SubCommandHolder subCommandHolder = optionalSubCommandHolders.get();
+            try {
+                subCommandHolder.getMethod().invoke(holder.getInstance(), new ParameterSet(Arrays.copyOfRange(commandArray, 2, commandArray.length)));
+            } catch (final @NotNull Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+
+    }
+
+    private boolean hasMethodNotCorrectParameters(final @NotNull Method method) {
+        if(method.getParameterCount() != 1) return true;
+        final Parameter[] parameters = method.getParameters();
+        return !parameters[0].getType().equals(ParameterSet.class);
     }
 
 }
