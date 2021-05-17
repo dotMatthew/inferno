@@ -108,7 +108,7 @@ public class Brigadier {
 
     }
 
-    private boolean unregisterCommand(final @NotNull String label) {
+    public boolean unregisterCommand(final @NotNull String label) {
         final Optional<CommandHolder> holder = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(label));
         if(holder.isEmpty()) {
             throw new CommandNotFoundException("There was no command found with this name");
@@ -116,11 +116,11 @@ public class Brigadier {
         return commands.remove(holder.get());
     }
 
-    private void unregisterCommands() {
+    public void unregisterCommands() {
         commands.clear();
     }
 
-    private void executeCommand(final @NotNull String command) {
+    public void executeCommand(final @NotNull String command) {
         final Optional<CommandHolder> holderOptional = commands.stream().findFirst().filter(commandHolder -> commandHolder.getLabel().equalsIgnoreCase(command));
 
         if(holderOptional.isEmpty()) {
